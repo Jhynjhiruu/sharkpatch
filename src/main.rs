@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use anyhow::Result;
+use clap_num::maybe_hex;
 use clap::Parser;
 use hex::FromHexError;
 use thiserror::Error;
@@ -67,6 +68,10 @@ struct Args {
     /// Patches to apply
     #[arg(short, long)]
     patches: Vec<Patch>,
+
+    /// Size to truncate to
+    #[arg(short, long, value_parser = maybe_hex::<usize>)]
+    truncate_to: Option<usize>
 }
 
 fn main() -> Result<()> {
@@ -78,6 +83,12 @@ fn main() -> Result<()> {
         let len = patch.bytes.len();
         data[patch.offset..patch.offset + len].copy_from_slice(&patch.bytes);
     }
+
+    let data = if let Some(t) = args.truncate_to {
+        &data[0..t.min(data.len())]
+    } else {
+        &data
+    };
 
     write(args.outfile, data)?;
 
